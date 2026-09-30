@@ -9,7 +9,7 @@ import secrets
 import bcrypt
 import jwt
 from dotenv import load_dotenv
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request
+from fastapi import APIRouter, Cookie, Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, field_validator
@@ -26,6 +26,10 @@ JWT_ALGORITHM = "HS256"
 app = FastAPI(title="SwasthyaSetu DDHS API", version="1.0.0")
 api = APIRouter(prefix="/api")
 logger = logging.getLogger("swasthyasetu")
+
+
+SESSION_COOKIE = "ddhs_session"
+COOKIE_MAX_AGE = 28800
 
 
 class LoginRequest(BaseModel):
@@ -88,11 +92,12 @@ def public_user(user: Dict[str, Any]) -> Dict[str, Any]:
     return {"id": user["id"], "name": user["name"], "email": user["email"], "role": user["role"], "facility_id": user.get("facility_id")}
 
 
-async def current_user(authorization: Optional[str] = Header(default=None)) -> Dict[str, Any]:
-    if not authorization or not authorization.startswith("Bearer "):
+async def current_user(session: Optional[str] = Cookie(default=None, alias=SESSION_COOKIE)) -> Dict[str, Any]:
+    """Resolve the signed-in user from the httpOnly session cookie; O(1) token decode + O(log n) user fetch."""
+    if not session:
         raise HTTPException(status_code=401, detail="Please sign in to continue")
     try:
-        payload = jwt.decode(authorization[7:], JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(session, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except jwt.PyJWTError as exc:
         raise HTTPException(status_code=401, detail="Session expired") from exc
     user = await db.users.find_one({"id": payload.get("sub")}, {"_id": 0})
@@ -152,12 +157,29 @@ async def root() -> Dict[str, str]:
 
 
 @api.post("/auth/login")
-async def login(payload: LoginRequest) -> Dict[str, Any]:
+async def login(payload: LoginRequest, response: Response) -> Dict[str, Any]:
+    """Verify credentials and set a signed httpOnly session cookie; O(1) verify + O(1) cookie write."""
     user = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
     if not user or not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     profile = public_user(user)
-    return {"user": profile, "token": token_for(user)}
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=token_for(user),
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+    return {"user": profile}
+
+
+@api.post("/auth/logout")
+async def logout(response: Response) -> Dict[str, str]:
+    """Clear the httpOnly session cookie; O(1)."""
+    response.delete_cookie(key=SESSION_COOKIE, path="/")
+    return {"message": "Signed out"}
 
 
 @api.get("/auth/me")

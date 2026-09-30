@@ -1,45 +1,117 @@
-import { useEffect, useRef, useState } from "react";
-import axios from "axios";
-import { Activity, AlertTriangle, ArrowRight, BellRing, Camera, CheckCircle2, ChevronDown, CircleUserRound, Clock3, CloudOff, Crosshair, HeartPulse, LayoutDashboard, LogOut, MapPin, Menu, Pill, QrCode, RefreshCw, Search, ShieldCheck, SlidersHorizontal, Stethoscope, Upload, UsersRound, WifiOff, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ChevronDown, Crosshair, HeartPulse, LayoutDashboard, LogOut, Menu, Pill, RefreshCw, Stethoscope, X } from "lucide-react";
+import { api } from "./api";
+import { IconButton, NavItem } from "./components/common";
+import Login from "./components/Login";
+import Overview from "./components/Overview";
+import Attendance from "./components/Attendance";
+import Services from "./components/Services";
+import Mediwiki from "./components/Mediwiki";
 import "@/App.css";
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const api = axios.create({ baseURL: API });
-const roles = [
-  { label: "DDHS", email: "ddhs@demo.health", password: "DDHS@2026", hint: "District command view" },
-  { label: "Supervisor", email: "supervisor@demo.health", password: "Supervisor@2026", hint: "Escalation and coverage" },
-  { label: "Facility officer", email: "officer@demo.health", password: "Officer@2026", hint: "Kumarakom PHC" },
-  { label: "Healthcare worker", email: "worker@demo.health", password: "Worker@2026", hint: "Attendance capture" },
-  { label: "Administrator", email: "admin@demo.health", password: "Admin@2026", hint: "System oversight" },
-];
-
-const Badge = ({ children, tone = "teal" }) => <span data-testid="status-badge" className={`badge badge-${tone}`}>{children}</span>;
-const IconButton = ({ label, children, onClick }) => <button data-testid={`icon-${label.toLowerCase().replaceAll(" ", "-")}`} aria-label={label} className="icon-button" onClick={onClick}>{children}</button>;
-const tokenConfig = () => ({ headers: { Authorization: `Bearer ${localStorage.getItem("ddhs_token")}` } });
-
-function Login({ onLogin }) {
-  const [selected, setSelected] = useState(roles[0]); const [email, setEmail] = useState(selected.email); const [password, setPassword] = useState(selected.password); const [error, setError] = useState("");
-  const choose = (role) => { setSelected(role); setEmail(role.email); setPassword(role.password); setError(""); };
-  const submit = async (event) => { event.preventDefault(); setError(""); try { const { data } = await api.post("/auth/login", { email, password }); localStorage.setItem("ddhs_token", data.token); onLogin(data.user); } catch (e) { setError(e.response?.data?.detail || "Unable to sign in"); } };
-  return <main className="login-shell"><section className="login-story"><div className="brand-lockup"><span className="brand-mark"><HeartPulse size={22} /></span><span>Upasthiti</span></div><div className="story-copy"><p className="eyebrow">PUBLIC HEALTH OPERATIONS</p><h1>See the whole system.<br /><em>Act where it matters.</em></h1><p>One clear view of attendance, essential services, and facility readiness across Kottayam district.</p></div><div className="story-footer"><div><span className="metric-number">24</span><span>facilities connected</span></div><div><span className="metric-number">91%</span><span>services available</span></div><div><span className="metric-number">SDG 3</span><span>health & well-being</span></div></div></section><section className="login-panel"><div className="mobile-brand"><span className="brand-mark"><HeartPulse size={18} /></span>Upasthiti</div><div className="login-heading"><p className="eyebrow">SECURE ACCESS</p><h2>Welcome back</h2><p>Choose a demo role to enter the command centre.</p></div><div className="role-grid">{roles.map((role) => <button key={role.label} data-testid={`role-${role.label.toLowerCase().replaceAll(" ", "-")}`} className={`role-option ${selected.label === role.label ? "selected" : ""}`} onClick={() => choose(role)}><span className="role-icon"><CircleUserRound size={17} /></span><span><strong>{role.label}</strong><small>{role.hint}</small></span>{selected.label === role.label && <CheckCircle2 size={17} />}</button>)}</div><form onSubmit={submit} className="login-form"><label>Email<input data-testid="login-email-input" value={email} onChange={(e) => setEmail(e.target.value)} /></label><label>Password<input data-testid="login-password-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>{error && <div data-testid="login-error" className="error-message">{error}</div>}<button data-testid="login-submit-button" className="primary-button" type="submit">Enter command centre <ArrowRight size={17} /></button></form><p className="privacy-note"><ShieldCheck size={15} /> Demo access uses secure role permissions and audit-ready sessions</p></section></main>;
-}
+const PAGE_TITLES = {
+  overview: "Command centre",
+  attendance: "Upasthiti / Attendance",
+  services: "Service readiness",
+  mediwiki: "Mediwiki",
+};
 
 function App() {
-  const [user, setUser] = useState(null); const [overview, setOverview] = useState(null); const [page, setPage] = useState("overview"); const [sidebarOpen, setSidebarOpen] = useState(false); const [lastSync, setLastSync] = useState("just now");
-  const load = async () => { const token = localStorage.getItem("ddhs_token"); if (!token) return; api.defaults.headers.common.Authorization = `Bearer ${token}`; try { const [me, data] = await Promise.all([api.get("/auth/me"), api.get("/overview")]); setUser(me.data); setOverview(data.data); setLastSync("just now"); } catch { localStorage.removeItem("ddhs_token"); setUser(null); } };
-  useEffect(() => { load(); }, []);
-  useEffect(() => { if (!user) return undefined; const timer = setInterval(load, 30000); return () => clearInterval(timer); }, [user]);
-  const acknowledge = async (alertId) => { await api.post(`/alerts/${alertId}/acknowledge`, { note: "Reviewed in DDHS command centre" }, tokenConfig()); setOverview((current) => ({ ...current, alerts: current.alerts.map((alert) => alert.id === alertId ? { ...alert, status: "acknowledged" } : alert) })); };
-  if (!user) return <Login onLogin={(u) => { setUser(u); load(); }} />;
-  return <div className="app-shell"><aside className={`sidebar ${sidebarOpen ? "open" : ""}`}><div className="sidebar-brand"><span className="brand-mark"><HeartPulse size={20} /></span><span>Upasthiti</span><IconButton label="Close menu" onClick={() => setSidebarOpen(false)}><X size={18} /></IconButton></div><div className="district-switch"><span className="live-dot" /> Kottayam district <ChevronDown size={15} /></div><nav><NavItem active={page === "overview"} icon={<LayoutDashboard size={18} />} label="Command centre" onClick={() => { setPage("overview"); setSidebarOpen(false); }} /><NavItem active={page === "attendance"} icon={<Crosshair size={18} />} label="Upasthiti / Attendance" onClick={() => { setPage("attendance"); setSidebarOpen(false); }} /><NavItem active={page === "services"} icon={<Stethoscope size={18} />} label="Service readiness" onClick={() => { setPage("services"); setSidebarOpen(false); }} /><NavItem active={page === "mediwiki"} icon={<Pill size={18} />} label="Mediwiki" onClick={() => { setPage("mediwiki"); setSidebarOpen(false); }} /></nav><div className="sidebar-bottom"><div className="sdg-note"><span>SDG 3</span><p>Good health and<br />well-being</p><HeartPulse size={28} /></div><div className="account-row"><span className="avatar">{user.name.split(" ").map((n) => n[0]).join("")}</span><div><strong>{user.name}</strong><small>{user.role.replace("_", " ")}</small></div><IconButton label="Sign out" onClick={() => { localStorage.removeItem("ddhs_token"); setUser(null); }}><LogOut size={16} /></IconButton></div></div></aside><div className="main-area"><header className="topbar"><button data-testid="mobile-menu-button" className="mobile-menu" onClick={() => setSidebarOpen(true)}><Menu size={21} /></button><div><p className="topbar-kicker">DDHS OPERATIONS / <span>LIVE DISTRICT VIEW</span></p><h2>{page === "overview" ? "Command centre" : page === "attendance" ? "Upasthiti / Attendance" : page === "services" ? "Service readiness" : "Mediwiki"}</h2></div><div className="topbar-actions"><div className="sync-state"><span className="live-dot" /> Live refresh <strong>{lastSync}</strong></div><IconButton label="Refresh data" onClick={load}><RefreshCw size={18} /></IconButton><div className="user-chip"><span className="avatar small">{user.name.split(" ").map((n) => n[0]).join("")}</span><span>{user.name.split(" ")[1] || user.name}</span></div></div></header><main className="content">{page === "overview" && <Overview data={overview} onNavigate={setPage} onAcknowledge={acknowledge} />}{page === "attendance" && <Attendance />}{page === "services" && <Services facilities={overview?.facilities || []} />}{page === "mediwiki" && <Mediwiki />}</main></div></div>;
-}
+  const [user, setUser] = useState(null);
+  const [overview, setOverview] = useState(null);
+  const [page, setPage] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [lastSync, setLastSync] = useState("just now");
+  const [booted, setBooted] = useState(false);
 
-function NavItem({ active, icon, label, onClick }) { return <button data-testid={`nav-${label.toLowerCase().replaceAll(" ", "-").replaceAll("/", "")}`} className={`nav-item ${active ? "active" : ""}`} onClick={onClick}>{icon}<span>{label}</span>{active && <span className="nav-arrow">→</span>}</button>; }
-function Overview({ data, onNavigate, onAcknowledge }) { if (!data) return <div className="loading-state" data-testid="dashboard-loading">Loading district data…</div>; const { metrics, facilities, alerts } = data; return <div className="page-stack"><section className="welcome-row"><div><p className="eyebrow">TUESDAY, 17 JUNE 2026 · 10:42 AM</p><h1>Good morning, Dr. Rao</h1><p className="subcopy">Here’s what needs your attention across the district today.</p></div><button data-testid="open-attendance-button" className="primary-button compact" onClick={() => onNavigate("attendance")}><Crosshair size={16} /> Capture attendance</button></section><section className="metric-grid"><Metric icon={<MapPin />} value={metrics.facilities} label="Facilities connected" detail="All reporting live" tone="teal" /><Metric icon={<UsersRound />} value={`${metrics.attendance}%`} label="Staff attendance" detail="+4.2% vs yesterday" tone="green" /><Metric icon={<Activity />} value={`${metrics.services}%`} label="Services available" detail="Across all facilities" tone="orange" /><Metric icon={<AlertTriangle />} value={metrics.escalated} label="Escalated alerts" detail="Require intervention" tone="red" /></section><div className="section-heading"><div><p className="eyebrow">DISTRICT PULSE</p><h3>Facility status</h3></div><button data-testid="view-services-button" className="text-button" onClick={() => onNavigate("services")}>View service readiness <ArrowRight size={15} /></button></div><section className="status-layout"><div className="map-panel"><div className="map-header"><div><strong>Live facility network</strong><small>Updated 10:42 AM · 4 locations</small></div><Badge>LIVE</Badge></div><div className="map-canvas"><div className="map-grid" />{facilities.map((f, i) => <div key={f.id} data-testid={`facility-map-pin-${f.id}`} className={`map-pin pin-${i} ${f.status}`}><span>{f.status === "critical" ? "!" : ""}</span><div><strong>{f.name}</strong><small>{f.staff_present}/{f.staff_expected} staff present</small></div></div>)}<div className="map-legend"><span><i className="dot green" />Operational</span><span><i className="dot orange" />Attention</span><span><i className="dot red" />Critical</span></div></div></div><div className="alerts-panel"><div className="panel-title"><div><p className="eyebrow">LIVE ALERT DELIVERY</p><h3>Active alerts <span>{alerts.filter((alert) => alert.status !== "acknowledged").length}</span></h3></div><BellRing size={18} /></div>{alerts.map((alert) => <div className={`alert-row ${alert.status === "acknowledged" ? "alert-acknowledged" : ""}`} key={alert.id} data-testid={`alert-${alert.id}`}><span className={`alert-icon ${alert.severity}`}><AlertTriangle size={15} /></span><div><strong>{alert.title}</strong><small>{alert.detail}</small><span className="alert-meta">{alert.age} · {alert.status}</span></div>{alert.status !== "acknowledged" ? <button data-testid={`acknowledge-alert-${alert.id}`} className="ack-button" onClick={() => onAcknowledge(alert.id)}>Acknowledge</button> : <CheckCircle2 className="verified" size={16} />}</div>)}</div></section><section className="sdg-strip"><div className="sdg-icon"><HeartPulse size={22} /></div><div><strong>Every resolved alert supports SDG 3</strong><p>Faster intervention keeps essential care available for every community.</p></div><span className="sdg-progress">District health coverage <b>91%</b></span></section></div>; }
-function Metric({ icon, value, label, detail, tone }) { return <div className="metric-card" data-testid={`metric-${label.toLowerCase().replaceAll(" ", "-")}`}><div className={`metric-icon ${tone}`}>{icon}</div><div><strong>{value}</strong><span>{label}</span><small className={tone === "red" ? "red-text" : ""}>{detail}</small></div></div>; }
-function Attendance() { const [state, setState] = useState("ready"); const [queue, setQueue] = useState(() => JSON.parse(localStorage.getItem("attendance_queue") || "[]")); const [syncing, setSyncing] = useState(false); const makeRecord = () => ({ staff_id: "usr-worker-01", facility_id: "fac-phc-02", latitude: 9.617, longitude: 76.43, gps_accuracy_m: 24, qr_verified: true, face_verified: true, device_secure: true, idempotency_key: `demo-${Date.now()}` }); const persist = (items) => { setQueue(items); localStorage.setItem("attendance_queue", JSON.stringify(items)); }; const capture = async () => { setState("capturing"); const record = makeRecord(); try { await api.post("/attendance/capture", record, tokenConfig()); setState("success"); } catch { persist([...queue, record]); setState("offline"); } }; const syncQueue = async () => { if (!queue.length) return; setSyncing(true); try { await api.post("/attendance/sync", queue, tokenConfig()); persist([]); setState("success"); } catch { setState("offline"); } finally { setSyncing(false); } }; return <div className="page-stack"><section className="welcome-row"><div><p className="eyebrow">UPASTHITI / ATTENDANCE · KUMARAKOM PHC</p><h1>Attendance capture</h1><p className="subcopy">Verify your presence securely before starting today’s shift.</p></div><Badge tone="green"><span className="live-dot" /> Device secure</Badge></section><section className="capture-layout"><div className="capture-card"><div className="capture-top"><span className="step-pill">STEP 1 OF 3</span><span className="capture-time"><Clock3 size={14} /> Server time · 10:42 AM</span></div><div className="capture-visual">{state === "success" ? <CheckCircle2 size={74} /> : state === "offline" ? <WifiOff size={74} /> : <Crosshair size={74} />}<div className="scan-ring" /></div><h2>{state === "ready" ? "Ready to verify" : state === "capturing" ? "Checking your presence…" : state === "success" ? "Attendance recorded" : "Saved offline"}</h2><p>{state === "success" ? "Your secure check-in has been shared with the facility officer." : state === "offline" ? "We’ll sync automatically when a connection returns." : "GPS, facility QR, and liveness checks protect the accuracy of this record."}</p><button data-testid="capture-attendance-button" className="primary-button capture-button" onClick={capture} disabled={state === "capturing"}>{state === "ready" ? "Start secure check-in" : state === "capturing" ? "Verifying…" : state === "success" ? "Check in another staff member" : "Retry sync"} <ArrowRight size={17} /></button></div><div className="verification-list"><Verify icon={<MapPin />} title="GPS geofence" detail="24m accuracy · inside facility boundary" ok /><Verify icon={<QrCode />} title="Facility QR code" detail="Kumarakom PHC · code verified" ok /><Verify icon={<Camera />} title="Face liveness" detail="Ready for camera verification" /></div></section><section className="offline-banner"><CloudOff size={19} /><div><strong>Offline queue · {queue.length} records waiting</strong><p>Durably stored on this device with idempotency protection and retry handling.</p></div><button data-testid="sync-now-button" className="text-button" disabled={syncing || !queue.length} onClick={syncQueue}>{syncing ? "Syncing…" : "Sync now"} <RefreshCw size={14} /></button></section></div>; }
-function Verify({ icon, title, detail, ok }) { return <div className="verify-row"><span className="verify-icon">{icon}</span><div><strong>{title}</strong><small>{detail}</small></div><CheckCircle2 className={ok ? "verified" : "muted-icon"} size={18} /></div>; }
-function Services({ facilities }) { return <div className="page-stack"><section className="welcome-row"><div><p className="eyebrow">ESSENTIAL CARE COVERAGE</p><h1>Service readiness</h1><p className="subcopy">A fast read on the services communities can access right now.</p></div><button data-testid="service-filter-button" className="outline-button"><SlidersHorizontal size={16} /> Filter facilities</button></section><div className="service-table" data-testid="service-readiness-table"><div className="table-head"><span>Facility</span><span>OPD</span><span>Pharmacy</span><span>Lab</span><span>Emergency</span><span>Maternal</span><span>Vaccination</span></div>{facilities.map((facility) => <div className="service-row" key={facility.id}><div><strong>{facility.name}</strong><small>{facility.type} · {facility.district}</small></div>{["OPD", "Pharmacy", "Lab", "Emergency", "Maternal", "Vaccination"].map((service, index) => <span key={service} className={index < facility.services_open ? "service-on" : "service-off"}>{index < facility.services_open ? "Available" : "Offline"}</span>)}<div className="row-status"><Badge tone={facility.status === "critical" ? "red" : facility.status === "attention" ? "orange" : "green"}>{facility.status}</Badge></div></div>)}</div><div className="sdg-strip"><div className="sdg-icon"><Stethoscope size={22} /></div><div><strong>Service continuity is a health outcome</strong><p>Monitoring availability helps DDHS direct support before care is interrupted.</p></div></div></div>; }
-function Mediwiki() { const [query, setQuery] = useState(""); const [medicines, setMedicines] = useState([]); const [selected, setSelected] = useState(null); const [scanStatus, setScanStatus] = useState(""); const [saved, setSaved] = useState(false); const fileInput = useRef(null); const search = async (value) => { setQuery(value); try { const { data } = await api.get(`/medicines?q=${encodeURIComponent(value)}`, tokenConfig()); setMedicines(data); } catch { setMedicines([]); } }; useEffect(() => { search(""); }, []); const scan = async (event) => { const file = event.target.files?.[0]; if (!file) return; if (!file.type.startsWith("image/")) { setScanStatus("Please choose a package image."); return; } setScanStatus("Verifying package against the safety-reviewed catalog…"); try { const { data } = await api.post("/medicines/scan", { filename: file.name }, tokenConfig()); setSelected(data.medicine); setScanStatus(`Verified match · ${data.verification_source}`); } catch (error) { setScanStatus(error.response?.data?.detail || "No verified catalog match found."); } }; const save = async () => { await api.post(`/medicines/${selected.id}/save`, {}, tokenConfig()); setSaved(true); }; return <div className="page-stack"><section className="welcome-row"><div><p className="eyebrow">MEDICINE INFORMATION ASSISTANT</p><h1>Mediwiki</h1><p className="subcopy">Search or upload a package photo for a safety-reviewed catalog match.</p></div><Badge tone="green">Verified catalog</Badge></section><section className="mediwiki-hero"><div className="medicine-search"><Pill size={24} /><input data-testid="medicine-search-input" value={query} onChange={(e) => search(e.target.value)} placeholder="Search medicine by name or generic name" /><Search size={20} /></div><input ref={fileInput} data-testid="medicine-image-input" className="visually-hidden" type="file" accept="image/*" onChange={scan} /><button data-testid="medicine-scan-button" className="scan-button" onClick={() => fileInput.current?.click()}><Upload size={18} /> Verify package photo</button>{scanStatus && <p data-testid="medicine-scan-status" className="scan-status"><CheckCircle2 size={14} /> {scanStatus}</p>}<p className="safety-line"><ShieldCheck size={14} /> Profiles are catalog-reviewed. Always confirm with a qualified health professional.</p></section><div className="medicine-grid">{medicines.map((medicine) => <button key={medicine.id} data-testid={`medicine-card-${medicine.id}`} className={`medicine-card ${selected?.id === medicine.id ? "selected" : ""}`} onClick={() => { setSelected(medicine); setSaved(false); }}><div className="medicine-card-top"><span className="medicine-symbol"><Pill size={20} /></span><Badge tone={medicine.category === "Antibiotic" ? "orange" : "teal"}>{medicine.category}</Badge></div><h3>{medicine.name}</h3><p>{medicine.generic} · {medicine.form}</p><span className="medicine-link">View profile <ArrowRight size={14} /></span></button>)}</div>{selected && <div className="medicine-profile" data-testid="medicine-profile"><div><p className="eyebrow">SAFETY-REVIEWED MEDICINE PROFILE</p><h2>{selected.name}</h2><p>{selected.generic} · {selected.form} · {selected.manufacturer}</p></div><IconButton label="Close profile" onClick={() => setSelected(null)}><X size={18} /></IconButton><div className="profile-columns"><div><span>Common use</span><strong>{selected.uses}</strong></div><div><span>Important caution</span><strong>{selected.caution}</strong></div></div><button data-testid="save-medicine-button" className="primary-button compact" onClick={save}>{saved ? "Saved to medicines" : "Save to medicines"} <CheckCircle2 size={16} /></button></div>}</div>; }
+  const load = useCallback(async () => {
+    try {
+      const [me, data] = await Promise.all([api.get("/auth/me"), api.get("/overview")]);
+      setUser(me.data);
+      setOverview(data.data);
+      setLastSync("just now");
+    } catch {
+      setUser(null);
+    } finally {
+      setBooted(true);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    const timer = setInterval(load, 30000);
+    return () => clearInterval(timer);
+  }, [user, load]);
+
+  const acknowledge = useCallback(async (alertId) => {
+    await api.post(`/alerts/${alertId}/acknowledge`, { note: "Reviewed in DDHS command centre" });
+    setOverview((current) => ({
+      ...current,
+      alerts: current.alerts.map((alert) => alert.id === alertId ? { ...alert, status: "acknowledged" } : alert),
+    }));
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try { await api.post("/auth/logout"); } catch { /* ignore */ }
+    setUser(null);
+    setOverview(null);
+  }, []);
+
+  if (!booted) return <div className="loading-state" data-testid="app-loading">Loading command centre…</div>;
+  if (!user) return <Login onLogin={(u) => { setUser(u); load(); }} />;
+
+  return (
+    <div className="app-shell">
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-brand">
+          <span className="brand-mark"><HeartPulse size={20} /></span>
+          <span>Upasthiti</span>
+          <IconButton label="Close menu" onClick={() => setSidebarOpen(false)}><X size={18} /></IconButton>
+        </div>
+        <div className="district-switch"><span className="live-dot" /> Kottayam district <ChevronDown size={15} /></div>
+        <nav>
+          <NavItem active={page === "overview"} icon={<LayoutDashboard size={18} />} label="Command centre" onClick={() => { setPage("overview"); setSidebarOpen(false); }} />
+          <NavItem active={page === "attendance"} icon={<Crosshair size={18} />} label="Upasthiti / Attendance" onClick={() => { setPage("attendance"); setSidebarOpen(false); }} />
+          <NavItem active={page === "services"} icon={<Stethoscope size={18} />} label="Service readiness" onClick={() => { setPage("services"); setSidebarOpen(false); }} />
+          <NavItem active={page === "mediwiki"} icon={<Pill size={18} />} label="Mediwiki" onClick={() => { setPage("mediwiki"); setSidebarOpen(false); }} />
+        </nav>
+        <div className="sidebar-bottom">
+          <div className="sdg-note">
+            <span>SDG 3</span>
+            <p>Good health and<br />well-being</p>
+            <HeartPulse size={28} />
+          </div>
+          <div className="account-row">
+            <span className="avatar">{user.name.split(" ").map((n) => n[0]).join("")}</span>
+            <div><strong>{user.name}</strong><small>{user.role.replace("_", " ")}</small></div>
+            <IconButton label="Sign out" onClick={signOut}><LogOut size={16} /></IconButton>
+          </div>
+        </div>
+      </aside>
+      <div className="main-area">
+        <header className="topbar">
+          <button data-testid="mobile-menu-button" className="mobile-menu" onClick={() => setSidebarOpen(true)}><Menu size={21} /></button>
+          <div>
+            <p className="topbar-kicker">DDHS OPERATIONS / <span>LIVE DISTRICT VIEW</span></p>
+            <h2>{PAGE_TITLES[page]}</h2>
+          </div>
+          <div className="topbar-actions">
+            <div className="sync-state"><span className="live-dot" /> Live refresh <strong>{lastSync}</strong></div>
+            <IconButton label="Refresh data" onClick={load}><RefreshCw size={18} /></IconButton>
+            <div className="user-chip"><span className="avatar small">{user.name.split(" ").map((n) => n[0]).join("")}</span><span>{user.name.split(" ")[1] || user.name}</span></div>
+          </div>
+        </header>
+        <main className="content">
+          {page === "overview" && <Overview data={overview} onNavigate={setPage} onAcknowledge={acknowledge} />}
+          {page === "attendance" && <Attendance />}
+          {page === "services" && <Services facilities={overview?.facilities || []} />}
+          {page === "mediwiki" && <Mediwiki />}
+        </main>
+      </div>
+    </div>
+  );
+}
 
 export default App;
