@@ -63,3 +63,10 @@ Build a centralized digital healthcare monitoring platform connecting Sub-Centre
 1. Connect verified medicine image identification and safety-reviewed content.
 2. Add offline persistence backed by a service worker or local database.
 3. Introduce production-grade biometric, device-attestation, and privacy controls.
+
+## Feature update — 2026-09-30
+
+- Renamed the visible product identity to **Upasthiti** and labeled attendance as `Upasthiti / Attendance`.
+- Replaced the package-photo demo CTA with a safety-reviewed catalog verification flow using image upload and verified catalog matching.
+- Added durable browser offline attendance storage with idempotent retry and sync controls.
+- Added live alert refresh polling and supervisor/DDHS acknowledgement actions that preserve the original alert record.

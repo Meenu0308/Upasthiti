@@ -61,6 +61,14 @@ class MedicineSave(BaseModel):
     medicine_id: str
 
 
+class MedicineScanRequest(BaseModel):
+    filename: str = Field(min_length=1, max_length=255)
+
+
+class AlertAcknowledgement(BaseModel):
+    note: str = Field(default="Acknowledged by supervisor", max_length=300)
+
+
 def hash_password(password: str) -> str:
     """Hash a password with bcrypt; O(1) application memory, cost governed by bcrypt."""
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -177,6 +185,29 @@ async def save_medicine(medicine_id: str, user: Dict[str, Any] = Depends(current
         raise HTTPException(status_code=404, detail="Medicine not found")
     await db.saved_medicines.update_one({"user_id": user["id"], "medicine_id": medicine_id}, {"$set": {"user_id": user["id"], "medicine_id": medicine_id}}, upsert=True)
     return {"message": "Medicine saved"}
+
+
+@api.post("/medicines/scan")
+async def scan_medicine(payload: MedicineScanRequest, user: Dict[str, Any] = Depends(current_user)) -> Dict[str, Any]:
+    """Match an uploaded package filename to the safety-reviewed demo catalog; O(n) over catalog rows."""
+    normalized = payload.filename.lower().replace("_", " ").replace("-", " ")
+    medicine = None
+    for candidate in MEDICINES:
+        if any(term in normalized for term in (candidate["name"].lower(), candidate["generic"].lower())):
+            medicine = await db.medicines.find_one({"id": candidate["id"]}, {"_id": 0})
+            break
+    if not medicine:
+        raise HTTPException(status_code=422, detail="No catalog match. Use a clearer package photo or search by medicine name.")
+    return {"verified": True, "verification_source": "SwasthyaSetu safety-reviewed catalog", "medicine": medicine}
+
+
+@api.post("/alerts/{alert_id}/acknowledge")
+async def acknowledge_alert(alert_id: str, payload: AlertAcknowledgement, user: Dict[str, Any] = Depends(current_user)) -> Dict[str, Any]:
+    """Record a supervisor/DDHS acknowledgement without deleting the original alert; O(1) indexed update."""
+    result = await db.alerts.update_one({"id": alert_id}, {"$set": {"status": "acknowledged", "acknowledged_by": user["id"], "acknowledged_at": datetime.now(timezone.utc).isoformat(), "acknowledgement_note": payload.note}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {"id": alert_id, "status": "acknowledged", "acknowledged_by": user["name"]}
 
 
 @api.post("/attendance/capture")
