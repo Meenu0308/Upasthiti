@@ -9,15 +9,20 @@ export default function Mediwiki() {
   const [selected, setSelected] = useState(null);
   const [scanStatus, setScanStatus] = useState("");
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const fileInput = useRef(null);
+  const latestQuery = useRef("");
 
   const search = useCallback(async (value) => {
     setQuery(value);
+    latestQuery.current = value;
     try {
       const { data } = await api.get(`/medicines?q=${encodeURIComponent(value)}`);
+      // Ignore out-of-order responses so a slow earlier request cannot overwrite a newer one.
+      if (latestQuery.current !== value) return;
       setMedicines(data);
     } catch {
-      setMedicines([]);
+      if (latestQuery.current === value) setMedicines([]);
     }
   }, []);
 
@@ -41,8 +46,13 @@ export default function Mediwiki() {
   };
 
   const save = async () => {
-    await api.post(`/medicines/${selected.id}/save`, {});
-    setSaved(true);
+    setSaveError("");
+    try {
+      await api.post(`/medicines/${selected.id}/save`, {});
+      setSaved(true);
+    } catch (error) {
+      setSaveError(error.response?.data?.detail || "Could not save medicine. Please try again.");
+    }
   };
 
   return (
@@ -106,6 +116,7 @@ export default function Mediwiki() {
           <button data-testid="save-medicine-button" className="primary-button compact" onClick={save}>
             {saved ? "Saved to medicines" : "Save to medicines"} <CheckCircle2 size={16} />
           </button>
+          {saveError && <p data-testid="save-medicine-error" className="error-message">{saveError}</p>}
         </div>
       )}
     </div>
