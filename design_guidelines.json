@@ -1,0 +1,52 @@
+{
+  "project_name": "SwasthyaSetu DDHS Centralized Healthcare Monitoring & Mediwiki Platform",
+  "app_type": "hybrid_fullstack",
+  "archetype": "ORGANIC & EARTHY mixed with SWISS & HIGH-CONTRAST (Enterprise Medical Dashboard)",
+  "typography": {
+    "heading_font": "Plus Jakarta Sans, sans-serif",
+    "body_font": "Inter, sans-serif",
+    "mono_font": "JetBrains Mono, monospace"
+  },
+  "colors": {
+    "primary": "#0D5C75",
+    "primary_dark": "#083D4E",
+    "accent": "#00A896",
+    "warning": "#E07A5F",
+    "danger": "#D64527",
+    "success": "#2A9D8F",
+    "neutral_bg": "#F4F7F6",
+    "surface": "#FFFFFF",
+    "border": "#D1DCD6",
+    "text_main": "#1A2E35",
+    "text_muted": "#5A737E"
+  },
+  "forbidden_colors": [
+    "#7351B7",
+    "#1B93A4"
+  ],
+  "components": [
+    "DDHS Live Facility Status Map & Grid",
+    "Attendance Capture with GPS, QR Verification & Face Liveness Simulator",
+    "Automated Alert Escalation & Quarantine Audit Logs",
+    "Service Monitoring (OPD, Pharmacy, Lab, Emergency, Maternal, Vaccination)",
+    "Mediwiki Smart Medicine Wikipedia (Search, OCR scan, expandable profile, save, compare, recent searches)",
+    "Offline Sync Queue with Idempotency Keys & Server Timestamps",
+    "Role-Based Access Control Switcher with Sample Credentials",
+    "Analytics & SDG 3 Good Health & Well-Being Impact Metrics",
+    "Pytest Fixtures & Benchmark Inference Latency Script"
+  ],
+  "image_urls": [
+    {
+      "category": "dashboard_analytics",
+      "url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxob3NwaXRhbCUyMGRpZ2l0YWwlMjBoZWFsdGhjYXJlJTIwbW9uaXRvcmluZyUyMGRhc2hib2FyZCUyMG1vZGVybnwwfHx8fDE3OTA3NTYxNDZ8DA&ixlib=rb-4.1.0&q=85",
+      "description": "Healthcare monitoring analytics screen"
+    }
+  ],
+  "universal_guidelines_for_main_agent": [
+    "Every interactive and key informational element MUST include a data-testid attribute.",
+    "Do not use complete transparent background in headers or overlays.",
+    "Ensure high APCA contrast ratios for text and badges.",
+    "Use Sonner for toast notifications.",
+    "Include responsive mobile-first layouts with generous padding (p-6 or p-8)."
+  ]
+}
