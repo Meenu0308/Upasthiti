@@ -14,16 +14,312 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance_events: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          event_type: string
+          flag_reason: string | null
+          gps_accuracy_m: number | null
+          id: string
+          occurred_at: string
+          phc_id: string
+          source: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          event_type: string
+          flag_reason?: string | null
+          gps_accuracy_m?: number | null
+          id?: string
+          occurred_at?: string
+          phc_id: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          event_type?: string
+          flag_reason?: string | null
+          gps_accuracy_m?: number | null
+          id?: string
+          occurred_at?: string
+          phc_id?: string
+          source?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_events_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_events_phc_id_fkey"
+            columns: ["phc_id"]
+            isOneToOne: false
+            referencedRelation: "phcs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctors: {
+        Row: {
+          active: boolean
+          created_at: string
+          designation: string
+          employee_code: string | null
+          full_name: string
+          id: string
+          phc_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          designation?: string
+          employee_code?: string | null
+          full_name: string
+          id?: string
+          phc_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          designation?: string
+          employee_code?: string | null
+          full_name?: string
+          id?: string
+          phc_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctors_phc_id_fkey"
+            columns: ["phc_id"]
+            isOneToOne: false
+            referencedRelation: "phcs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicines: {
+        Row: {
+          brand_names: string[]
+          composition: string | null
+          created_at: string
+          dosage: string | null
+          form: string | null
+          generic_name: string | null
+          how_it_works: string | null
+          id: string
+          interactions: string[]
+          name: string
+          prescription_required: boolean
+          price_range: string | null
+          side_effects: string[]
+          slug: string
+          storage: string | null
+          strength: string | null
+          uses: string[]
+          warnings: string[]
+        }
+        Insert: {
+          brand_names?: string[]
+          composition?: string | null
+          created_at?: string
+          dosage?: string | null
+          form?: string | null
+          generic_name?: string | null
+          how_it_works?: string | null
+          id?: string
+          interactions?: string[]
+          name: string
+          prescription_required?: boolean
+          price_range?: string | null
+          side_effects?: string[]
+          slug: string
+          storage?: string | null
+          strength?: string | null
+          uses?: string[]
+          warnings?: string[]
+        }
+        Update: {
+          brand_names?: string[]
+          composition?: string | null
+          created_at?: string
+          dosage?: string | null
+          form?: string | null
+          generic_name?: string | null
+          how_it_works?: string | null
+          id?: string
+          interactions?: string[]
+          name?: string
+          prescription_required?: boolean
+          price_range?: string | null
+          side_effects?: string[]
+          slug?: string
+          storage?: string | null
+          strength?: string | null
+          uses?: string[]
+          warnings?: string[]
+        }
+        Relationships: []
+      }
+      phcs: {
+        Row: {
+          block: string
+          created_at: string
+          district: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+        }
+        Insert: {
+          block: string
+          created_at?: string
+          district: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+        }
+        Update: {
+          block?: string
+          created_at?: string
+          district?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      recent_searches: {
+        Row: {
+          created_at: string
+          id: string
+          medicine_id: string | null
+          mode: string
+          query: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          medicine_id?: string | null
+          mode?: string
+          query: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          medicine_id?: string | null
+          mode?: string
+          query?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recent_searches_medicine_id_fkey"
+            columns: ["medicine_id"]
+            isOneToOne: false
+            referencedRelation: "medicines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_medicines: {
+        Row: {
+          created_at: string
+          id: string
+          medicine_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          medicine_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          medicine_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_medicines_medicine_id_fkey"
+            columns: ["medicine_id"]
+            isOneToOne: false
+            referencedRelation: "medicines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "ddhs" | "dho" | "bmo" | "doctor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +446,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["ddhs", "dho", "bmo", "doctor"],
+    },
   },
 } as const
